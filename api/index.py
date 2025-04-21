@@ -22,8 +22,8 @@ app = Flask(__name__)
 
 # API_KEYS структурасы
 API_KEYS = {
-    "GoodKey": {"status": "active", "created_at": "2025-04-18", "duration_days": 30},
-    "HELLO-WORLD": {"status": "inactive", "created_at": "2025-04-18", "duration_days": 30}
+    "GoodKey": {"status": "active", "created_at": "2025-04-21", "duration_days": 30},
+    "HELLO-WORLD": {"status": "inactive", "created_at": "2025-04-21", "duration_days": 30}
 }
 
 # API ачкычын текшерүү декоратору
