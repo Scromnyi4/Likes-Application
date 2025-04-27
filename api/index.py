@@ -22,7 +22,7 @@ app = Flask(__name__)
 
 # API_KEYS структурасы
 API_KEYS = {
-    "GoodKey": {"status": "active", "created_at": "2025-04-21", "duration_days": 30},
+    "lkscromnyi": {"status": "active", "created_at": "2025-04-21", "duration_days": 30},
     "HELLO-WORLD": {"status": "inactive", "created_at": "2025-04-21", "duration_days": 30}
 }
 
