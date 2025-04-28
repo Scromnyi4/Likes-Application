@@ -18,7 +18,7 @@ headers = {
     'Accept-Encoding': "gzip",
     'Content-Type': "application/octet-stream",
     'Expect': "100-continue",
-    'Authorization': "Bearer eyJhbGciOiJIUzI1NiIsInN2ciI6IjEiLCJ0eXAiOiJKV1QifQ.eyJhY2NvdW50X2lkIjoxMTM4MjYxNTc4OCwibmlja25hbWUiOiJTY3JvbW55aXwyIiwibm90aV9yZWdpb24iOiJSVSIsImxvY2tfcmVnaW9uIjoiUlUiLCJleHRlcm5hbF9pZCI6IjFjMTU2NTVhYTUyMmQzODdkZDNlY2M0YmRiNjlmODc2IiwiZXh0ZXJuYWxfdHlwZSI6NCwicGxhdF9pZCI6MSwiY2xpZW50X3ZlcnNpb24iOiIxLjEwOC4zIiwiZW11bGF0b3Jfc2NvcmUiOjEwMCwiaXNfZW11bGF0b3IiOnRydWUsImNvdW50cnlfY29kZSI6IlVTIiwiZXh0ZXJuYWxfdWlkIjozODA0Njc4Mzc2LCJyZWdfYXZhdGFyIjoxMDIwMDAwMDcsInNvdXJjZSI6NCwibG9ja19yZWdpb25fdGltZSI6MTc0MTYxNTUwOCwiY2xpZW50X3R5cGUiOjIsInNpZ25hdHVyZV9tZDUiOiIiLCJ1c2luZ192ZXJzaW9uIjoxLCJyZWxlYXNlX2NoYW5uZWwiOiIzcmRfcGFydHkiLCJyZWxlYXNlX3ZlcnNpb24iOiJPQjQ4IiwiZXhwIjoxNzQzMDE5ODM4fQ.8Duw10jzx8Uqywdy1Pjy_6b0wvYA0Ilt6B9qEls27-I",
+    'Authorization': "Bearer {token}",
     'X-Unity-Version': "2018.4.11f1",
     'X-GA': "v1 1",
     'ReleaseVersion': "OB46"
