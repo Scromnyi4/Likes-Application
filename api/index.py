@@ -11,6 +11,9 @@ import json
 from my_api import like_pb2
 from my_api import like_count_pb2
 from my_api import uid_generator_pb2
+from my_api import like_pb2
+from my_api import like_count_pb2
+from my_api import uid_generator_pb2
 from google.protobuf.message import DecodeError
 import random
 from datetime import datetime, timedelta
