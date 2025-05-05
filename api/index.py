@@ -8,6 +8,7 @@ from google.protobuf.json_format import MessageToJson
 import binascii
 import aiohttp
 import json
+import like_pb2
 from my_api import like_pb2
 from my_api import like_count_pb2
 from my_api import uid_generator_pb2
