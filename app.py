@@ -232,12 +232,13 @@ def handle_requests():
             status = 1 if like_given > 0 else 2
             
             result = {
+                "PlayerNickname": player_name,
                 "LikesGivenByAPI": like_given,
                 "LikesAfterCommand": after_like,
                 "LikesBeforeCommand": before_like,
-                "PlayerNickname": player_name,
                 "UID": player_uid,
                 "status": status
+                
             }
             return result
 
