@@ -69,7 +69,7 @@ jobs:
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
-          git add token_eu.json
+          git add token_bd.json
           git commit -m 'Update token_bd.json with new tokens' || echo "No changes to commit"
           git fetch origin
           git merge -X theirs origin/main || echo "Merge conflict resolved by keeping local changes"
