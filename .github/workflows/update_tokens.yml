@@ -2,7 +2,7 @@ name: Update Token EU JSON
 
 on:
   schedule:
-    - cron: '0 */8 * * *' # Every 7 hours (UTC)
+    - cron: '0 */6 1* * *' # Every 7 hours (UTC)
   workflow_dispatch: # Manual trigger
 
 permissions:
@@ -81,8 +81,8 @@ jobs:
       - name: Notify Telegram on completion
         if: always()
         run: |
-          TOKEN_COUNT=$(jq length token_eu.json 2>/dev/null || echo "Unknown")
-          MESSAGE="🔔 <b>Workflow Report</b>%0AStatus: <b>${{ job.status }}</b>%0ATokens generated: <b>$TOKEN_COUNT</b>%0ATime: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          TOKEN_COUNT=$(jq length token_bd.json 2>/dev/null || echo "Unknown")
+          MESSAGE="🔔 <b>Workflow Report</b>%0AStatus: <b>${{ job.status }}</b>%0ATotal tokens generated: <b>$TOKEN_COUNT</b>%0ATime: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
             -d parse_mode=HTML \
