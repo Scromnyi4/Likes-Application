@@ -37,7 +37,7 @@ def load_github_config() -> GitHubConfig:
     )
 
 def update_github_file(config: GitHubConfig, tokens: List[dict]) -> None:
-    """Update token_eu.json file on GitHub."""
+    """Update token_bd.json file on GitHub."""
     headers = {
         "Authorization": f"token {config.token}",
         "Accept": "application/vnd.github.v3+json",
@@ -76,7 +76,7 @@ def update_github_file(config: GitHubConfig, tokens: List[dict]) -> None:
         logging.info(f"Uploading updated {config.file_path} to GitHub")
         response = requests.put(base_url, headers=headers, json=payload)
         response.raise_for_status()
-        logging.info("Successfully updated token_eu.json on GitHub")
+        logging.info("Successfully updated token_bd.json on GitHub")
     except requests.RequestException as e:
         logging.error(f"Failed to update file on GitHub: {e}")
         raise
