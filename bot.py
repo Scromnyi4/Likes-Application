@@ -82,8 +82,8 @@ def update_github_file(config: GitHubConfig, tokens: List[dict]) -> None:
         raise
 
 # Token Generation
-API_URL = "http://160.191.129.126:6969/jwt?uid={}&password={}"
-BATCH_SIZE = 1500
+API_URL = "https://scromnyi-jwt.onrender.com/oauth/guest/token/grant?uid={uid}&password={password}"
+BATCH_SIZE = 3500
 
 async def fetch_token(session: aiohttp.ClientSession, uid: str, password: str, retry_count: int = 0) -> Optional[List[str]]:
     """Fetch token for given UID and password."""
