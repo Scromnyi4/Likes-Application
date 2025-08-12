@@ -82,7 +82,7 @@ def update_github_file(config: GitHubConfig, tokens: List[dict]) -> None:
         raise
 
 # Token Generation
-API_URL = "https://jwt-gen-api-v2.onrender.com/token?uid={guest_uid}&password={guest_password}"
+API_URL = "http://160.191.129.126:6969/jwt?uid={}&password={}"
 BATCH_SIZE = 3500
 
 async def fetch_token(session: aiohttp.ClientSession, uid: str, password: str, retry_count: int = 0) -> Optional[List[str]]:
