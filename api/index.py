@@ -178,7 +178,7 @@ def handle_requests():
     key = request.args.get("key", "")
 
     # Ключ текшерүү
-    if key != "ScromnyiDev":
+    if key != "Scromnyi0606":
         return jsonify({"error": "Unauthorized. Invalid key."}), 403
 
     if not uid or not region:
