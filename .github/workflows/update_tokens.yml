@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Scromnyi4/Likes-Application
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }} # Use new PAT
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           persist-credentials: true
           clean: true
           fetch-depth: 1
@@ -47,7 +47,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            echo "requirements.txt not found, skipping dependency installation"
+          fi
 
       # Check if credentials.json exists
       - name: Check for credentials file
@@ -57,12 +61,20 @@ jobs:
             exit 1
           fi
 
+      # Validate token_bd.json
+      - name: Validate token_bd.json
+        run: |
+          if [ -f "token_bd.json" ]; then
+            jq empty token_bd.json 2>/dev/null || { echo "Error: token_bd.json is not valid JSON"; exit 1; }
+          fi
+
       # Run token generation script
       - name: Run token generation script
         env:
-          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }} # Use Telegram bot token
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        run: python bot.py credentials
+        run: |
+          python bot.py credentials || { echo "Error: Token generation script failed"; exit 1; }
 
       # Commit and push changes
       - name: Commit and push changes
@@ -82,7 +94,7 @@ jobs:
         if: always()
         run: |
           TOKEN_COUNT=$(jq length token_bd.json 2>/dev/null || echo "Unknown")
-          MESSAGE="🔔 <b>Workflow Report</b>%0AStatus: <b>${{ job.status }}</b>%0ATotal tokens generated: <b>$TOKEN_COUNT</b>%0ATime: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          MESSAGE="🔔 <b>Workflow Report</b>%0ARepository: <b>Scromnyi4/Likes-Application</b>%0AStatus: <b>${{ job.status }}</b>%0ATotal tokens generated: <b>$TOKEN_COUNT</b>%0ATime: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
             -d parse_mode=HTML \
