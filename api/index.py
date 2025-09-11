@@ -228,7 +228,7 @@ def handle_requests():
             result = {
                 "LikesGivenByAPI": like_given,
                 "LikesAfterCommand": after_like,
-                "Level": player_level,
+                "AccountLevel": player_level,
                 "LikesBeforeCommand": before_like,
                 "PlayerNickname": player_name,
                 "UID": player_uid,
