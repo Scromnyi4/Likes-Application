@@ -218,7 +218,7 @@ def handle_requests():
             jsone_after = MessageToJson(after)
             data_after = json.loads(jsone_after)
             after_like = int(data_after.get('AccountInfo', {}).get('Likes', 0))
-            player_level = int(data_after.get('account_level', {}).get('Level', ''))
+            player_region = int(data_after.get('AccountInfo', {}).get('Region', ''))
             player_uid = int(data_after.get('AccountInfo', {}).get('UID', 0))
             player_name = str(data_after.get('AccountInfo', {}).get('PlayerNickname', ''))
 
@@ -228,7 +228,7 @@ def handle_requests():
             result = {
                 "LikesGivenByAPI": like_given,
                 "LikesAfterCommand": after_like,
-                "AccountLevel": player_level,
+                "AccountRegion": player_region,
                 "LikesBeforeCommand": before_like,
                 "PlayerNickname": player_name,
                 "UID": player_uid,
