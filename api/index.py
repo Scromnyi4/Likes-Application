@@ -218,7 +218,7 @@ def handle_requests():
             jsone_after = MessageToJson(after)
             data_after = json.loads(jsone_after)
             after_like = int(data_after.get('AccountInfo', {}).get('Likes', 0))
-            player_level = int(data_after.get('AccountInfo', {}).get('level', 0))
+            player_level = int(data_after.get('AccountInfo', {}).get('Level', 0))
             player_uid = int(data_after.get('AccountInfo', {}).get('UID', 0))
             player_name = str(data_after.get('AccountInfo', {}).get('PlayerNickname', ''))
 
