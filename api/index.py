@@ -11,7 +11,7 @@ import like_pb2
 import like_count_pb2
 import uid_generator_pb2
 from google.protobuf.message import DecodeError
-import randos
+import random
 
 app = Flask(__name__)
 
