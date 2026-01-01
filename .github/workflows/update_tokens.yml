@@ -2,7 +2,7 @@ name: Update Token BD JSON
 
 on:
   schedule:
-    - cron: '0 */7 * * *' # Every 7 hours (UTC)
+    - cron: 'n: '0 */9 *': '0 */ *' # Every 7 h
   workflow_dispatch: # Manual trigger
 
 permissions:
