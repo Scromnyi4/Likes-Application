@@ -22,7 +22,7 @@ app = Flask(__name__)
 # Reset at 01:35 GMT+6 daily
 
 VALID_KEY = "blnxhub300"
-DAILY_LIMIT = 30
+DAILY_LIMIT = 300
 
 # In-memory storage (for Vercel/deployment, consider Redis if needed; for simplicity, using global dict)
 usage = {"count": 0, "last_reset": None}
