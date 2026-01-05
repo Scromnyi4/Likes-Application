@@ -213,8 +213,8 @@ def like_api():
             "LikesGivenByAPI": likes_added,
             "status": 1 if likes_added > 0 else 2
         }
-
-
+        return result
+         
         result = process_request()
         return jsonify(result)
     except Exception as e:
