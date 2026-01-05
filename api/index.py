@@ -169,68 +169,50 @@ def decode_protobuf(binary):
         app.logger.error(f"Unexpected error during protobuf decoding: {e}")
         return None
 
-@app.route('/like', methods=['GET'])
-def handle_requests():
+@app.route("/like", methods=["GET"])
+def like_api():
     uid = request.args.get("uid")
-    server_name = request.args.get("server_name", "").upper()
-    if not uid or not server_name:
-        return jsonify({"error": "UID and server_name are required"}), 400
+    server = request.args.get("server_name", "").upper()
+
+    if not uid or not server:
+        return jsonify({"error": "uid & server_name required"}), 400
 
     try:
-        def process_request():
-            tokens = load_tokens(server_name)
-            if tokens is None:
-                raise Exception("Failed to load tokens.")
-            token = tokens[0]['token']
-            encrypted_uid = enc(uid)
-            if encrypted_uid is None:
-                raise Exception("Encryption of UID failed.")
+        tokens = load_tokens(server)
+        token = tokens[0]["token"]
 
-            before = make_request(encrypted_uid, server_name, token)
-            if before is None:
-                raise Exception("Failed to retrieve initial player info.")
-            try:
-                jsone = MessageToJson(before)
-            except Exception as e:
-                raise Exception(f"Error converting 'before' protobuf to JSON: {e}")
-            data_before = json.loads(jsone)
-            before_like = data_before.get('AccountInfo', {}).get('Likes', 0)
-            try:
-                before_like = int(before_like)
-            except Exception:
-                before_like = 0
-            app.logger.info(f"Likes before command: {before_like}")
+        encrypted_uid = enc_uid(uid)
+        before = fetch_player_info(encrypted_uid, server, token)
 
-            if server_name == "IND":
-                url = "https://client.ind.freefiremobile.com/LikeProfile"
-            elif server_name in {"BR", "US", "SAC", "NA"}:
-                url = "https://client.us.freefiremobile.com/LikeProfile"
-            else:
-                url = "https://clientbp.ggblueshark.com/LikeProfile"
+        before_json = json.loads(MessageToJson(before))
+        before_like = int(before_json["AccountInfo"].get("Likes", 0))
 
-            asyncio.run(send_multiple_requests(uid, server_name, url))
+        if server == "IND":
+            like_url = "https://client.ind.freefiremobile.com/LikeProfile"
+        elif server in {"BR", "US", "SAC", "NA"}:
+            like_url = "https://client.us.freefiremobile.com/LikeProfile"
+        else:
+            like_url = "https://clientbp.ggblueshark.com/LikeProfile"
 
-            after = make_request(encrypted_uid, server_name, token)
-            if after is None:
-                raise Exception("Failed to retrieve player info after like requests.")
-            try:
-                jsone_after = MessageToJson(after)
-            except Exception as e:
-                raise Exception(f"Error converting 'after' protobuf to JSON: {e}")
-            data_after = json.loads(jsone_after)
-            after_like = int(data_after.get('AccountInfo', {}).get('Likes', 0))
-            player_uid = int(data_after.get('AccountInfo', {}).get('UID', 0))
-            player_name = str(data_after.get('AccountInfo', {}).get('PlayerNickname', ''))
-            like_given = after_like - before_like
-            status = 1 if like_given != 0 else 2
-            result = {
-                "LikesGivenByAPI": like_given,
-                "LikesafterCommand": after_like,
-                "LikesbeforeCommand": before_like,
-                "PlayerNickname": player_name,
-                "UID": player_uid,
-                "status": status
-            }
+        asyncio.run(send_multiple_likes(uid, server, like_url))
+
+        after = fetch_player_info(encrypted_uid, server, token)
+        after_json = json.loads(MessageToJson(after))
+        acc = after_json.get("AccountInfo", {})
+
+        after_like = int(acc.get("Likes", 0))
+        likes_added = after_like - before_like
+
+        result = {
+            "UID": acc.get("UID", ""),
+            "PlayerNickname": acc.get("PlayerNickname", ""),
+            "PlayerLevel": acc.get("Level", ""),
+            "Region": acc.get("region", server),
+            "LikesbeforeCommand": before_like,
+            "LikesafterCommand": after_like,
+            "LikesGivenByAPI": likes_added,
+            "status": 1 if likes_added > 0 else 2
+        }
             return result
 
         result = process_request()
