@@ -1,0 +1,402 @@
+from flask import Flask, request, jsonify
+import asyncio
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
+from google.protobuf.json_format import MessageToJson
+import binascii
+import aiohttp
+import requests
+import json
+import like_pb2
+import like_count_pb2
+import uid_generator_pb2
+from google.protobuf.message import DecodeError
+import time
+
+app = Flask(__name__)
+
+def load_tokens(server_name):
+    try:
+        if server_name == "IND":
+            with open("token_ind.json", "r") as f:
+                tokens = json.load(f)
+        elif server_name in {"BR", "US", "SAC", "NA"}:
+            with open("token_br.json", "r") as f:
+                tokens = json.load(f)
+        else:
+            with open("token_bd.json", "r") as f:
+                tokens = json.load(f)
+        return tokens
+    except Exception as e:
+        app.logger.error(f"Error loading tokens for server {server_name}: {e}")
+        return None
+
+def encrypt_message(plaintext):
+    try:
+        key = b'Yg&tc%DEuh6%Zc^8'
+        iv = b'6oyZDr22E3ychjM%'
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        padded_message = pad(plaintext, AES.block_size)
+        encrypted_message = cipher.encrypt(padded_message)
+        return binascii.hexlify(encrypted_message).decode('utf-8')
+    except Exception as e:
+        app.logger.error(f"Error encrypting message: {e}")
+        return None
+
+def create_protobuf_message(user_id, region):
+    try:
+        message = like_pb2.like()
+        message.uid = int(user_id)
+        message.region = region
+        if hasattr(message, 'ob_version'):
+            message.ob_version = "OB48"
+        return message.SerializeToString()
+    except Exception as e:
+        app.logger.error(f"Error creating protobuf message: {e}")
+        return None
+
+async def send_request(encrypted_uid, token, url):
+    try:
+        edata = bytes.fromhex(encrypted_uid)
+        headers = {
+            'User-Agent': "Dalvik/2.1.0 (Linux; U; Android 9; ASUS_Z01QD Build/PI)",
+            'Connection': "Keep-Alive",
+            'Accept-Encoding': "gzip",
+            'Authorization': f"Bearer {token}",
+            'Content-Type': "application/x-www-form-urlencoded",
+            'Expect': "100-continue",
+            'X-Unity-Version': "2018.4.11f1",
+            'X-GA': "v1 1",
+            'ReleaseVersion': "OB51"
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=edata, headers=headers) as response:
+                if response.status != 200:
+                    text = await response.text()
+                    app.logger.error(f"Request failed with status code: {response.status} and response: {text}")
+                    return None
+                return await response.text()
+    except Exception as e:
+        app.logger.error(f"Exception in send_request: {e}")
+        return None
+
+async def send_multiple_requests(uid, server_name, url):
+    try:
+        region = server_name
+        protobuf_message = create_protobuf_message(uid, region)
+        if protobuf_message is None:
+            app.logger.error("Failed to create protobuf message.")
+            return None
+        encrypted_uid = encrypt_message(protobuf_message)
+        if encrypted_uid is None:
+            app.logger.error("Encryption failed.")
+            return None
+        tasks = []
+        tokens = load_tokens(server_name)
+        if tokens is None:
+            app.logger.error("Failed to load tokens.")
+            return None
+        for i in range(100):
+            token = tokens[i % len(tokens)]["token"]
+            tasks.append(send_request(encrypted_uid, token, url))
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        return results
+    except Exception as e:
+        app.logger.error(f"Exception in send_multiple_requests: {e}")
+        return None
+
+def create_protobuf(uid):
+    try:
+        message = uid_generator_pb2.uid_generator()
+        message.saturn_ = int(uid)
+        message.garena = 1
+ 
+        if hasattr(message, 'ob_version'):
+            message.ob_version = "OB48"
+        return message.SerializeToString()
+    except Exception as e:
+        app.logger.error(f"Error creating uid protobuf: {e}")
+        return None
+
+def enc(uid):
+    protobuf_data = create_protobuf(uid)
+    if protobuf_data is None:
+        return None
+    encrypted_uid = encrypt_message(protobuf_data)
+    return encrypted_uid
+
+def make_request(encrypt, server_name, token):
+    try:
+        if server_name == "IND":
+            url = "https://client.ind.freefiremobile.com/GetPlayerPersonalShow"
+        elif server_name in {"BR", "US", "SAC", "NA"}:
+            url = "https://client.us.freefiremobile.com/GetPlayerPersonalShow"
+        else:
+            url = "https://clientbp.ggblueshark.com/GetPlayerPersonalShow"
+        edata = bytes.fromhex(encrypt)
+        headers = {
+            'User-Agent': "Dalvik/2.1.0 (Linux; U; Android 9; ASUS_Z01QD Build/PI)",
+            'Connection': "Keep-Alive",
+            'Accept-Encoding': "gzip",
+            'Authorization': f"Bearer {token}",
+            'Content-Type': "application/x-www-form-urlencoded",
+            'Expect': "100-continue",
+            'X-Unity-Version': "2018.4.11f1",
+            'X-GA': "v1 1",
+            'ReleaseVersion': "OB51"
+        }
+        response = requests.post(url, data=edata, headers=headers, verify=False)
+        if response.status_code != 200:
+            app.logger.error(f"Request failed with status code: {response.status_code} and response: {response.text}")
+            return None
+        binary = response.content
+        decode = decode_protobuf(binary)
+        if decode is None:
+            app.logger.error("Protobuf decoding returned None.")
+        return decode
+    except Exception as e:
+        app.logger.error(f"Error in make_request: {e}")
+        return None
+
+def decode_protobuf(binary):
+    try:
+        items = like_count_pb2.Info()
+        items.ParseFromString(binary)
+        return items
+    except DecodeError as e:
+        app.logger.error(f"Error decoding Protobuf data: {e}")
+        return None
+    except Exception as e:
+        app.logger.error(f"Unexpected error during protobuf decoding: {e}")
+        return None
+
+def extract_protobuf_info(protobuf_data):
+    """Extract specific fields from protobuf data"""
+    try:
+        # Try to access protobuf fields directly
+        region = ""
+        level = 0
+        
+        # Method 1: Check if protobuf_data has region and level attributes
+        if hasattr(protobuf_data, 'region'):
+            region = protobuf_data.region
+        elif hasattr(protobuf_data, 'Region'):
+            region = protobuf_data.Region
+        
+        if hasattr(protobuf_data, 'level'):
+            level = protobuf_data.level
+        elif hasattr(protobuf_data, 'Level'):
+            level = protobuf_data.Level
+        
+        # Method 2: Check if there's AccountInfo with these fields
+        if not region or not level:
+            if hasattr(protobuf_data, 'AccountInfo'):
+                account_info = protobuf_data.AccountInfo
+                if hasattr(account_info, 'region'):
+                    region = account_info.region
+                if hasattr(account_info, 'level'):
+                    level = account_info.level
+        
+        # Method 3: Convert to JSON and parse (as fallback)
+        if not region or not level:
+            try:
+                json_str = MessageToJson(protobuf_data)
+                data = json.loads(json_str)
+                
+                # Try different possible JSON structures
+                if 'region' in data:
+                    region = data['region']
+                elif 'Region' in data:
+                    region = data['Region']
+                elif 'AccountInfo' in data and 'region' in data['AccountInfo']:
+                    region = data['AccountInfo']['region']
+                
+                if 'level' in data:
+                    level = data['level']
+                elif 'Level' in data:
+                    level = data['Level']
+                elif 'AccountInfo' in data and 'level' in data['AccountInfo']:
+                    level = data['AccountInfo']['level']
+            except Exception as json_e:
+                app.logger.error(f"Error parsing JSON: {json_e}")
+        
+        # If still not found, try to look for nested structures
+        if not region or not level:
+            try:
+                # Debug: print available attributes
+                app.logger.info(f"Available protobuf attributes: {dir(protobuf_data)}")
+                
+                # Try to find the actual structure
+                for attr_name in dir(protobuf_data):
+                    if not attr_name.startswith('_'):
+                        attr_value = getattr(protobuf_data, attr_name)
+                        if attr_name.lower() == 'region' or attr_name.lower().endswith('region'):
+                            region = str(attr_value)
+                        if attr_name.lower() == 'level' or attr_name.lower().endswith('level'):
+                            try:
+                                level = int(attr_value)
+                            except:
+                                level = attr_value
+            except Exception as debug_e:
+                app.logger.error(f"Debug error: {debug_e}")
+        
+        return {
+            "region": str(region) if region else "",
+            "level": int(level) if level else 0
+        }
+    except Exception as e:
+        app.logger.error(f"Error extracting protobuf info: {e}")
+        return {"region": "", "level": 0}
+
+@app.route('/send_likes', methods=['GET'])
+def handle_requests():
+    uid = request.args.get("uid")
+    server_name = request.args.get("server_name", "").upper()
+    if not uid or not server_name:
+        return jsonify({"error": "UID and server_name are required"}), 400
+
+    try:
+        start_time = time.time()
+        
+        def process_request():
+            tokens = load_tokens(server_name)
+            if tokens is None:
+                raise Exception("Failed to load tokens.")
+            token = tokens[0]['token']
+            encrypted_uid = enc(uid)
+            if encrypted_uid is None:
+                raise Exception("Encryption of UID failed.")
+
+            before = make_request(encrypted_uid, server_name, token)
+            if before is None:
+                raise Exception("Failed to retrieve initial player info.")
+            
+            try:
+                jsone = MessageToJson(before)
+            except Exception as e:
+                raise Exception(f"Error converting 'before' protobuf to JSON: {e}")
+            
+            data_before = json.loads(jsone)
+            
+            # Extract account info from JSON
+            account_info = data_before.get('AccountInfo', {})
+            before_like = account_info.get('Likes', 0)
+            player_name = account_info.get('PlayerNickname', '')
+            player_uid = account_info.get('UID', 0)
+            
+            # Extract region and level directly from protobuf object
+            player_info = extract_protobuf_info(before)
+            region = player_info['region']
+            level = player_info['level']
+            
+            # Try alternative extraction methods
+            if not region or not level:
+                # Method 1: Check if before object has user_info attribute
+                if hasattr(before, 'user_info'):
+                    user_info = before.user_info
+                    if hasattr(user_info, 'region'):
+                        region = user_info.region
+                    if hasattr(user_info, 'level'):
+                        level = user_info.level
+            
+            if not region or not level:
+                # Method 2: Try to find these fields in the JSON structure
+                # Look for region and level anywhere in the data_before structure
+                def find_in_dict(d, key):
+                    """Recursively search for key in dictionary"""
+                    if isinstance(d, dict):
+                        for k, v in d.items():
+                            if k.lower() == key.lower():
+                                return v
+                            elif isinstance(v, (dict, list)):
+                                result = find_in_dict(v, key)
+                                if result is not None:
+                                    return result
+                    elif isinstance(d, list):
+                        for item in d:
+                            result = find_in_dict(item, key)
+                            if result is not None:
+                                return result
+                    return None
+                
+                region_found = find_in_dict(data_before, 'region')
+                level_found = find_in_dict(data_before, 'level')
+                
+                if region_found:
+                    region = region_found
+                if level_found:
+                    try:
+                        level = int(level_found)
+                    except:
+                        level = level_found
+            
+            try:
+                before_like = int(before_like)
+            except Exception:
+                before_like = 0
+            app.logger.info(f"Likes before command: {before_like}")
+
+            if server_name == "IND":
+                url = "https://client.ind.freefiremobile.com/LikeProfile"
+            elif server_name in {"BR", "US", "SAC", "NA"}:
+                url = "https://client.us.freefiremobile.com/LikeProfile"
+            else:
+                url = "https://clientbp.ggblueshark.com/LikeProfile"
+
+            asyncio.run(send_multiple_requests(uid, server_name, url))
+
+            after = make_request(encrypted_uid, server_name, token)
+            if after is None:
+                raise Exception("Failed to retrieve player info after like requests.")
+            
+            try:
+                jsone_after = MessageToJson(after)
+            except Exception as e:
+                raise Exception(f"Error converting 'after' protobuf to JSON: {e}")
+            
+            data_after = json.loads(jsone_after)
+            account_info_after = data_after.get('AccountInfo', {})
+            after_like = int(account_info_after.get('Likes', 0))
+            
+            # Verify player info consistency
+            if player_uid == 0:
+                player_uid = int(account_info_after.get('UID', 0))
+            if not player_name:
+                player_name = str(account_info_after.get('PlayerNickname', ''))
+            
+            like_given = after_like - before_like
+            status = 1 if like_given != 0 else 2
+            
+            end_time = time.time()
+            execution_time = end_time - start_time
+            
+            result = {
+                "AccountInfo": {
+                    "PlayerNickname": player_name,
+                    "UID": player_uid,
+                    "PlayerLevel": level,
+                    "PlayerRegion": region
+                },
+                "LikesInfo": {
+                    "LikesAdded": like_given,
+                    "LikesBefore": before_like,
+                    "LikesAfter": after_like
+                },
+                "Speed": f"{execution_time:.1f}s",
+                "status": status
+            }
+            return result
+
+        result = process_request()
+        return jsonify(result)
+    except Exception as e:
+        end_time = time.time()
+        execution_time = end_time - start_time
+        app.logger.error(f"Error processing request: {e}")
+        return jsonify({
+            "error": str(e),
+            "Speed": f"{execution_time:.1f}s"
+        }), 500
+
+if __name__ == '__main__':
+    app.run(debug=True, use_reloader=False)
