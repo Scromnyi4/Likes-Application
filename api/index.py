@@ -151,7 +151,7 @@ def make_request(encrypt, server_name, token):
         binary = response.content
         decode = decode_protobuf(binary)
         if decode is None:
-            app.logger.error("Protobuf decoding returned None.")
+            app.logger.error("Protobuf decoding returned None.")e.")
         return decode
     except Exception as e:
         app.logger.error(f"Error in make_request: {e}")
@@ -213,12 +213,12 @@ def like_api():
             "LikesGivenByAPI": likes_added,
             "status": 1 if likes_added > 0 else 2
         }
-            return result
+
 
         result = process_request()
         return jsonify(result)
     except Exception as e:
-        app.logger.error(f"Error processing request: {e}")
+        app.logger.error(gger.error(f"Error processin{e}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
