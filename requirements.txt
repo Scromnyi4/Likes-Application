@@ -1,9 +1,6 @@
-Flask==2.3.2
-Flask-Caching==2.0.2
-requests==2.31.0
+Flask==2.3.3
 pycryptodome==3.19.0
-colorama==0.4.6
-protobuf==4.24.4
-gunicorn==21.2.0
-aiohttp
-
+google-protobuf==3.20.3
+aiohttp==3.8.5
+requests==2.31.0
+protobuf==3.20.3
