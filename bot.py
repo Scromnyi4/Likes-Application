@@ -7,6 +7,7 @@ import base64
 import requests
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
+import urllib.parse
 
 # Configure logging
 logging.basicConfig(
@@ -88,14 +89,27 @@ BATCH_SIZE = 30
 async def fetch_token(session: aiohttp.ClientSession, uid: str, password: str, retry_count: int = 0) -> Optional[List[str]]:
     """Fetch token for given UID and password."""
     try:
+        encoded_uid = urllib.parse.quote(uid)
+        encoded_password = urllib.parse.quote(password)
+        url = API_URL.format(uid=encoded_uid, password=encoded_password)
         logging.info(f"Fetching token for UID: {uid}")
-        async with session.get(API_URL.format(uid, password)) as response:
+        async with session.get(url) as response:
             if response.status == 200:
                 data = await response.json()
-                if isinstance(data, list):
-                    return [item.get("token") for item in data if "token" in item]
-                logging.error(f"Unexpected response format for UID: {uid}")
-                return None
+                if isinstance(data, dict):
+                    if data.get("status") == "live":
+                        token = data.get("token")
+                        if token:
+                            return [token]
+                        else:
+                            logging.error(f"No token found in response for UID: {uid}")
+                            return None
+                    else:
+                        logging.error(f"Invalid status for UID: {uid}: {data.get('status')}")
+                        return None
+                else:
+                    logging.error(f"Unexpected response format for UID: {uid}")
+                    return None
             logging.error(f"Failed to fetch token for UID: {uid}. Status: {response.status}")
             return None
     except Exception as e:
