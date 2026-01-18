@@ -83,7 +83,7 @@ def update_github_file(config: GitHubConfig, tokens: List[dict]) -> None:
         raise
 
 # Token Generation
-API_URL = "https://jwt-gen-api-v2.onrender.com/token?uid={uid}&password={password}"
+API_URL = "https://uditanshu-dev-fd.vercel.app/token?uid={uid}&password={password}"
 BATCH_SIZE = 30
 
 async def fetch_token(session: aiohttp.ClientSession, uid: str, password: str, retry_count: int = 0) -> Optional[List[str]]:
@@ -97,7 +97,7 @@ async def fetch_token(session: aiohttp.ClientSession, uid: str, password: str, r
             if response.status == 200:
                 data = await response.json()
                 if isinstance(data, dict):
-                    if data.get("status") == "live":
+                    if data.get("status") == "success":
                         token = data.get("token")
                         if token:
                             return [token]
