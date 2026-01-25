@@ -59,14 +59,8 @@ def update_github_file(config: GitHubConfig, tokens: List[Dict[str, Any]]) -> No
         logging.error(f"Failed to fetch current file SHA: {e}")
         raise
 
-    # Format tokens as required
-    formatted_tokens = []
-    for token_data in tokens:
-        if "token" in token_data:
-            formatted_tokens.append({"token": token_data["token"]})
-    
     # Encode content to base64
-    content_json = json.dumps(formatted_tokens, indent=2)
+    content_json = json.dumps(tokens, indent=2)
     encoded_content = base64.b64encode(content_json.encode()).decode()
     
     # Prepare payload
@@ -99,11 +93,8 @@ async def fetch_token(session: aiohttp.ClientSession, uid: str, password: str, r
         async with session.get(API_BASE_URL, params={"uid": uid, "password": password}, timeout=aiohttp.ClientTimeout(total=30)) as response:
             if response.status == 200:
                 data = await response.json()
-                if isinstance(data, list):
-                    logging.info(f"Successfully fetched token for UID: {uid}")
-                    return data
-                logging.warning(f"Unexpected response format for UID: {uid}")
-                return None
+                logging.info(f"Successfully fetched token for UID: {uid}")
+                return data  # Бул жерде массив келет
             elif response.status == 500:
                 logging.error(f"Server error for UID: {uid}. Status: {response.status}")
                 return None
@@ -129,7 +120,7 @@ async def fetch_token(session: aiohttp.ClientSession, uid: str, password: str, r
 
 async def process_credentials_in_batches(credentials: List[Tuple[str, str]]) -> List[Dict[str, Any]]:
     """Process credentials in batches and collect tokens."""
-    tokens = []
+    all_tokens = []
     failed_credentials = []
     total_batches = (len(credentials) + BATCH_SIZE - 1) // BATCH_SIZE
     
@@ -153,8 +144,13 @@ async def process_credentials_in_batches(credentials: List[Tuple[str, str]]) -> 
             for uid, password, task in tasks:
                 try:
                     result = await task
-                    if result:
-                        tokens.extend(result)
+                    if result and isinstance(result, list) and len(result) > 0:
+                        # Серверден массив келет, бизге биринчи элемент керек
+                        if isinstance(result[0], dict) and "token" in result[0]:
+                            all_tokens.append(result[0])  # Биринчи элементти алабыз
+                        else:
+                            logging.warning(f"Invalid token format for UID: {uid}")
+                            failed_credentials.append((uid, password))
                     else:
                         failed_credentials.append((uid, password))
                 except Exception as e:
@@ -177,8 +173,11 @@ async def process_credentials_in_batches(credentials: List[Tuple[str, str]]) -> 
             for uid, password, task in retry_tasks:
                 try:
                     result = await task
-                    if result:
-                        tokens.extend(result)
+                    if result and isinstance(result, list) and len(result) > 0:
+                        if isinstance(result[0], dict) and "token" in result[0]:
+                            all_tokens.append(result[0])
+                        else:
+                            second_failed.append((uid, password))
                     else:
                         second_failed.append((uid, password))
                 except Exception as e:
@@ -186,31 +185,17 @@ async def process_credentials_in_batches(credentials: List[Tuple[str, str]]) -> 
                     second_failed.append((uid, password))
             
             if second_failed:
-                logging.warning(f"Still failed for {len(second_failed)} credentials after retry")
+                logging.warning(f"Still failed for {len(second_failed)} credentials after retry: {second_failed}")
     
-    logging.info(f"Completed. Total tokens generated: {len(tokens)}")
-    return tokens
-
-def validate_token_response(token_data: List[Dict[str, Any]]) -> bool:
-    """Validate that token response has the expected structure."""
-    if not isinstance(token_data, list):
-        return False
-    
-    for item in token_data:
-        if not isinstance(item, dict):
-            return False
-        if "token" not in item:
-            return False
-        if not isinstance(item["token"], str) or not item["token"].startswith("eyJ"):
-            return False
-    
-    return True
+    logging.info(f"Completed. Total tokens generated: {len(all_tokens)}")
+    return all_tokens
 
 def format_tokens_for_output(tokens: List[Dict[str, Any]]) -> List[Dict[str, str]]:
     """Format tokens for output in required format."""
     formatted = []
     for token_data in tokens:
         if isinstance(token_data, dict) and "token" in token_data:
+            # Токенду гана алабыз, башка полеларды таштайбыз
             formatted.append({"token": token_data["token"]})
     return formatted
 
@@ -247,13 +232,12 @@ async def process_file(filename: str) -> Optional[List[Dict[str, Any]]]:
         tokens = await process_credentials_in_batches(credentials)
         
         if tokens:
-            # Validate tokens
-            if not validate_token_response(tokens):
-                logging.error("Token validation failed")
-                return None
-            
             # Format tokens for output
             formatted_tokens = format_tokens_for_output(tokens)
+            
+            # Debug: show first token format
+            if formatted_tokens:
+                logging.info(f"First token example: {formatted_tokens[0]}")
             
             # Save to local file
             with open("token_bd.json", "w") as f:
@@ -305,6 +289,7 @@ async def main(filename: str) -> None:
     logging.info("TOKEN GENERATION SUMMARY")
     logging.info(f"Total tokens generated: {len(tokens)}")
     logging.info(f"Output saved to: token_bd.json")
+    logging.info(f"First few tokens: {tokens[:3] if len(tokens) > 3 else tokens}")
     logging.info("=" * 50)
 
 if __name__ == "__main__":
