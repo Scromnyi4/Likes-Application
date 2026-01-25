@@ -239,7 +239,37 @@ def like_api():
         app.logger.error(f"Error processing request: {e}")
         return jsonify({"error": str(e)}), 500
 
+# Токендерди текшерүү үчүн кошумча endpoint
+@app.route("/check_tokens/<server_name>", methods=["GET"])
+def check_tokens(server_name):
+    server_name = server_name.upper()
+    tokens = load_tokens(server_name)
+    
+    if not tokens:
+        return jsonify({"error": "Токендер жүктөлгөн жок"}), 400
+    
+    # Ар бир токенди текшерүү
+    valid_tokens = []
+    invalid_tokens = []
+    
+    for token_info in tokens:
+        token = token_info.get("token", "")
+        # JWT туура форматында болушу керек (3 бөлүктөн)
+        if token.count('.') == 2:
+            valid_tokens.append(token[:20] + "...")
+        else:
+            invalid_tokens.append(token[:30] + "..." if len(token) > 30 else token)
+    
+    result = {
+        "server": server_name,
+        "total_tokens": len(tokens),
+        "valid_tokens_count": len(valid_tokens),
+        "invalid_tokens_count": len(invalid_tokens),
+        "valid_tokens_sample": valid_tokens[:3] if valid_tokens else [],
+        "invalid_tokens_sample": invalid_tokens[:3] if invalid_tokens else []
+    }
+    
+    return jsonify(result)
+
 if __name__ == '__main__':
-    app.run(debug=True, use_reloader=False)
-
-
+    app.run(debug=True, use_reloader=False, host='0.0.0.0', port=5000)
