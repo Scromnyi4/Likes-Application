@@ -51,7 +51,7 @@ def create_like_protobuf(user_id, region):
         message.uid = int(user_id)
         message.region = region
         if hasattr(message, 'ob_version'):
-            message.ob_version = "OB48"
+            message.ob_version = "OB52"
         return message.SerializeToString()
     except Exception as e:
         app.logger.error(f"Error creating like protobuf message: {e}")
@@ -91,7 +91,7 @@ async def send_like_request(encrypted_uid, token, url):
             'Expect': "100-continue",
             'X-Unity-Version': "2018.4.11f1",
             'X-GA': "v1 1",
-            'ReleaseVersion': "OB51"
+            'ReleaseVersion': "OB52"
         }
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=edata, headers=headers) as response:
@@ -157,7 +157,7 @@ def fetch_player_info(encrypted_uid, server_name, token):
             'Expect': "100-continue",
             'X-Unity-Version': "2018.4.11f1",
             'X-GA': "v1 1",
-            'ReleaseVersion': "OB51"
+            'ReleaseVersion': "OB52"
         }
         response = requests.post(url, data=edata, headers=headers, verify=False)
         
