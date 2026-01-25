@@ -83,7 +83,7 @@ def update_github_file(config: GitHubConfig, tokens: List[dict]) -> None:
 
 # Token Generation
 API_BASE_URL = "http://203.18.158.202:6969/jwt"
-BATCH_SIZE = 1
+BATCH_SIZE = 35
 
 async def fetch_token(session: aiohttp.ClientSession, uid: str, password: str, retry_count: int = 0) -> Optional[List[dict]]:
     """Fetch token for given UID and password."""
