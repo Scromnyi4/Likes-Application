@@ -82,18 +82,18 @@ def update_github_file(config: GitHubConfig, tokens: List[dict]) -> None:
         raise
 
 # Token Generation
-API_URL = "http://203.18.158.202:6969/jwt?uid={uid}&password={password}"
+API_BASE_URL = "http://203.18.158.202:6969/jwt"
 BATCH_SIZE = 1
 
-async def fetch_token(session: aiohttp.ClientSession, uid: str, password: str, retry_count: int = 0) -> Optional[List[str]]:
+async def fetch_token(session: aiohttp.ClientSession, uid: str, password: str, retry_count: int = 0) -> Optional[List[dict]]:
     """Fetch token for given UID and password."""
     try:
         logging.info(f"Fetching token for UID: {uid}")
-        async with session.get(API_URL.format(uid, password)) as response:
+        async with session.get(API_BASE_URL, params={"uid": uid, "password": password}) as response:
             if response.status == 200:
                 data = await response.json()
                 if isinstance(data, list):
-                    return [item.get("token") for item in data if "token" in item]
+                    return data
                 logging.error(f"Unexpected response format for UID: {uid}")
                 return None
             logging.error(f"Failed to fetch token for UID: {uid}. Status: {response.status}")
@@ -123,7 +123,7 @@ async def process_credentials_in_batches(credentials: List[Tuple[str, str]]) -> 
             
             for idx, result in enumerate(results):
                 if result:
-                    tokens.extend({"token": token} for token in result)
+                    tokens.extend(result)
                 else:
                     failed_credentials.append(current_batch[idx])
         
@@ -135,7 +135,7 @@ async def process_credentials_in_batches(credentials: List[Tuple[str, str]]) -> 
             
             for idx, result in enumerate(retry_results):
                 if result:
-                    tokens.extend({"token": token} for token in result)
+                    tokens.extend(result)
         
         logging.info(f"Completed. Total tokens generated: {len(tokens)}")
     return tokens
