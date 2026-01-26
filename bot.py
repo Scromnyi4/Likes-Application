@@ -1,5 +1,3 @@
-#Credit: @scromnyi_modz
-#Post Channel: @scromnyi_leaks
 import asyncio
 import json
 import aiohttp
@@ -91,7 +89,7 @@ async def fetch_token(session: aiohttp.ClientSession, uid: str, password: str, r
     """Fetch token for given UID and password."""
     try:
         logging.info(f"Fetching token for UID: {uid}")
-        async with session.get(API_URL.format(uid, password)) as response:
+        async with session.get(API_URL.format(uid=uid, password=password)) as response:
             if response.status == 200:
                 data = await response.json()
                 if isinstance(data, list):
@@ -195,5 +193,3 @@ if __name__ == "__main__":
         raise SystemExit(1)
     filename = sys.argv[1]
     asyncio.run(main(filename))
-
-
